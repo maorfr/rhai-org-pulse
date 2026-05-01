@@ -26,6 +26,23 @@
 
     <!-- Dashboard content -->
     <template v-else>
+      <!-- Include indirect reports toggle -->
+      <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4 cursor-pointer select-none">
+        <button
+          role="switch"
+          :aria-checked="includeIndirect"
+          @click="toggleIndirectReports"
+          class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          :class="includeIndirect ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'"
+        >
+          <span
+            class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+            :class="includeIndirect ? 'translate-x-4' : 'translate-x-0'"
+          />
+        </button>
+        Include indirect reports
+      </label>
+
       <!-- Tabs -->
       <div class="flex space-x-4 border-b border-gray-200 dark:border-gray-700 mb-6">
         <button
@@ -50,22 +67,6 @@
         <div v-else>
           <!-- Edit mode controls -->
           <div class="flex items-center justify-end gap-3 mb-3">
-            <!-- Include indirect reports toggle -->
-            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mr-auto cursor-pointer select-none">
-              <button
-                role="switch"
-                :aria-checked="includeIndirect"
-                @click="toggleIndirectReports"
-                class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                :class="includeIndirect ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'"
-              >
-                <span
-                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="includeIndirect ? 'translate-x-4' : 'translate-x-0'"
-                />
-              </button>
-              Include indirect reports
-            </label>
             <template v-if="bulkEditing">
               <span v-if="pendingChangeCount > 0" class="text-xs text-amber-600 dark:text-amber-400">{{ pendingChangeCount }} unsaved change{{ pendingChangeCount !== 1 ? 's' : '' }}</span>
               <button
