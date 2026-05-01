@@ -325,7 +325,29 @@
             </button>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Search -->
+          <div class="relative mb-3">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            <input
+              v-model="teamSearchQuery"
+              type="text"
+              placeholder="Search by team name, org, or field values..."
+              class="w-full pl-9 pr-8 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+            <button
+              v-if="teamSearchQuery"
+              @click="teamSearchQuery = ''"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <div v-if="teamSearchQuery && filteredTeams.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+            No teams match "{{ teamSearchQuery }}"
+          </div>
+
+          <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
@@ -341,7 +363,7 @@
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 <tr
-                  v-for="team in teams"
+                  v-for="team in filteredTeams"
                   :key="team.id"
                   class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
@@ -545,6 +567,7 @@ const { reloadRoster } = useRoster()
 
 const activeTab = ref('reports')
 const searchQuery = ref('')
+const teamSearchQuery = ref('')
 
 // Single-cell editing state
 const editingCell = ref({ uid: null, fieldId: null })
@@ -586,6 +609,29 @@ const filteredReports = computed(() => {
     if (r.name?.toLowerCase().includes(q)) return true
     if (r.title?.toLowerCase().includes(q)) return true
     if (r.teamIds?.some(id => teamById.value[id]?.name?.toLowerCase().includes(q))) return true
+    return false
+  })
+})
+
+const filteredTeams = computed(() => {
+  const q = teamSearchQuery.value.trim().toLowerCase()
+  if (!q) return teams.value
+  return teams.value.filter(t => {
+    if (t.name?.toLowerCase().includes(q)) return true
+    if (t.orgKey?.toLowerCase().includes(q)) return true
+    // Search team metadata field values
+    for (const field of visibleTeamFields.value) {
+      const val = t.metadata?.[field.id]
+      if (!val) continue
+      if (typeof val === 'string' && val.toLowerCase().includes(q)) return true
+      if (Array.isArray(val) && val.some(v => {
+        if (typeof v === 'string') {
+          const resolved = referencedPeople.value[v]
+          return (resolved || v).toLowerCase().includes(q)
+        }
+        return false
+      })) return true
+    }
     return false
   })
 })
