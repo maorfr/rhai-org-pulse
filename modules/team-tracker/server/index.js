@@ -3475,8 +3475,8 @@ module.exports = function registerRoutes(router, context) {
       const personFields = fieldDefs.personFields.filter(f => !f.deleted && f.visible);
       const teamFields = fieldDefs.teamFields.filter(f => !f.deleted && f.visible);
 
-      // If no visible fields are defined, nothing to alert on
-      if (personFields.length === 0 && teamFields.length === 0) return [];
+      // If no visible person fields and no team fields, still check boards
+      // (boards are always a completeness concern for teams)
 
       // Count incomplete direct reports
       let incompletePersonCount = 0;
@@ -3492,8 +3492,9 @@ module.exports = function registerRoutes(router, context) {
       const purview = getManagerPurview(user.uid, registry, teamsData, { includeIndirect: false });
       let incompleteTeamCount = 0;
       for (const team of purview.teams) {
-        const hasEmpty = teamFields.some(f => isFieldEmpty(team.metadata?.[f.id], f));
-        if (hasEmpty) incompleteTeamCount++;
+        const hasEmptyBoards = !team.boards || team.boards.length === 0;
+        const hasEmptyField = teamFields.some(f => isFieldEmpty(team.metadata?.[f.id], f));
+        if (hasEmptyBoards || hasEmptyField) incompleteTeamCount++;
       }
 
       if (incompletePersonCount === 0 && incompleteTeamCount === 0) return [];

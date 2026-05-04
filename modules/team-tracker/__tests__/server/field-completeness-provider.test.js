@@ -97,7 +97,7 @@ function baseStorageData() {
     },
     'team-data/teams.json': {
       teams: {
-        team_a: { id: 'team_a', name: 'Alpha', orgKey: 'org1', metadata: { field_t1: 'Sprint 1' }, boards: [] },
+        team_a: { id: 'team_a', name: 'Alpha', orgKey: 'org1', metadata: { field_t1: 'Sprint 1' }, boards: [{ url: 'https://board.example.com/a' }] },
         team_b: { id: 'team_b', name: 'Beta', orgKey: 'org1', metadata: {}, boards: [] }
       }
     },
@@ -150,9 +150,10 @@ describe('field-completeness message provider', () => {
     data['team-data/registry.json'].people.alice._appFields = { field_f1: 'frontend' }
     data['team-data/registry.json'].people.bob._appFields = { field_f1: 'backend' }
     data['team-data/registry.json'].people.charlie._appFields = { field_f1: 'qa' }
-    // Fill team fields
+    // Fill team fields and boards
     data['team-data/teams.json'].teams.team_a.metadata = { field_t1: 'Sprint 1' }
     data['team-data/teams.json'].teams.team_b.metadata = { field_t1: 'Sprint 2' }
+    data['team-data/teams.json'].teams.team_b.boards = [{ url: 'https://board.example.com/b' }]
     const { provider } = setupAndGetProvider(data)
     const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
     expect(result).toEqual([])
@@ -160,9 +161,10 @@ describe('field-completeness message provider', () => {
 
   it('returns warning message with correct person count', async () => {
     const data = baseStorageData()
-    // team fields all filled
+    // team fields and boards all filled
     data['team-data/teams.json'].teams.team_a.metadata = { field_t1: 'Sprint 1' }
     data['team-data/teams.json'].teams.team_b.metadata = { field_t1: 'Sprint 2' }
+    data['team-data/teams.json'].teams.team_b.boards = [{ url: 'https://board.example.com/b' }]
     // bob and charlie have empty field_f1
     const { provider } = setupAndGetProvider(data)
     const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
@@ -199,9 +201,10 @@ describe('field-completeness message provider', () => {
     // Only bob has empty field, alice and charlie filled
     data['team-data/registry.json'].people.alice._appFields = { field_f1: 'a' }
     data['team-data/registry.json'].people.charlie._appFields = { field_f1: 'c' }
-    // Fill all team fields
+    // Fill all team fields and boards
     data['team-data/teams.json'].teams.team_a.metadata = { field_t1: 's1' }
     data['team-data/teams.json'].teams.team_b.metadata = { field_t1: 's2' }
+    data['team-data/teams.json'].teams.team_b.boards = [{ url: 'https://board.example.com/b' }]
     const { provider } = setupAndGetProvider(data)
     const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
     expect(result).toHaveLength(1)
@@ -230,10 +233,27 @@ describe('field-completeness message provider', () => {
     data['team-data/field-definitions.json'].teamFields = [
       { id: 'field_t1', label: 'Sprint', type: 'free-text', visible: true, deleted: true }
     ]
+    // Fill boards so only custom field visibility matters
+    data['team-data/teams.json'].teams.team_b.boards = [{ url: 'https://board.example.com/b' }]
     const { provider } = setupAndGetProvider(data)
     const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
-    // No visible non-deleted fields, so nothing to check
+    // No visible non-deleted fields and boards are filled, so nothing to check
     expect(result).toEqual([])
+  })
+
+  it('counts teams with empty boards as incomplete', async () => {
+    const data = baseStorageData()
+    // Fill all person and team custom fields
+    data['team-data/registry.json'].people.alice._appFields = { field_f1: 'a' }
+    data['team-data/registry.json'].people.bob._appFields = { field_f1: 'b' }
+    data['team-data/registry.json'].people.charlie._appFields = { field_f1: 'c' }
+    data['team-data/teams.json'].teams.team_a.metadata = { field_t1: 's1' }
+    data['team-data/teams.json'].teams.team_b.metadata = { field_t1: 's2' }
+    // team_a has boards (from base), team_b has empty boards
+    const { provider } = setupAndGetProvider(data)
+    const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
+    expect(result).toHaveLength(1)
+    expect(result[0].text).toBe('1 team has incomplete fields.')
   })
 
   it('message includes link to manager dashboard', async () => {

@@ -529,18 +529,11 @@
                   </td>
                   <!-- Boards column -->
                   <td class="px-4 py-3 text-sm" :class="teamBulkEditing ? 'bg-blue-50 dark:bg-blue-900/20' : ''">
-                    <!-- BULK EDIT MODE -->
-                    <div v-if="teamBulkEditing" class="min-w-[140px]">
-                      <input
-                        :value="getTeamBulkBoardsValue(team.id)"
-                        class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
-                        placeholder="url1, url2"
-                        @input="setTeamBulkBoardsValue(team.id, $event.target.value)"
-                      >
-                    </div>
-
-                    <!-- DISPLAY MODE (click opens drawer) -->
-                    <div v-else class="group flex items-center gap-1.5 cursor-pointer" @click="boardsDrawerTeam = team">
+                    <div
+                      class="group flex items-center gap-1.5 cursor-pointer"
+                      :class="{ 'bg-red-100 dark:bg-red-700/50 rounded px-1': !team.boards || team.boards.length === 0 }"
+                      @click="boardsDrawerTeam = team"
+                    >
                       <div v-if="team.boards && team.boards.length > 0" class="flex flex-wrap gap-1.5">
                         <a
                           v-for="(board, idx) in team.boards"
@@ -632,7 +625,6 @@ const boardsDrawerTeam = ref(null)
 // Team tab: bulk editing state
 const teamBulkEditing = ref(false)
 const teamBulkChanges = reactive({})
-const teamBulkBoardsChanges = reactive({})
 
 const visibleReports = computed(() =>
   includeIndirect.value
@@ -661,6 +653,7 @@ const incompleteReportUids = computed(() => new Set(incompleteReports.value.map(
 
 const incompleteTeams = computed(() => {
   return teams.value.filter(team => {
+    if (!team.boards || team.boards.length === 0) return true
     return visibleTeamFields.value.some(field =>
       isFieldEmpty(team.metadata?.[field.id], field)
     )
@@ -1098,19 +1091,17 @@ function removeFromTeamBulkPersonValue(teamId, fieldId, uid) {
 // --- Team tab: bulk editing ---
 
 const teamPendingChangeCount = computed(() => {
-  return Object.keys(teamBulkChanges).length + Object.keys(teamBulkBoardsChanges).length
+  return Object.keys(teamBulkChanges).length
 })
 
 function enterTeamBulkEdit() {
   teamBulkEditing.value = true
   for (const key of Object.keys(teamBulkChanges)) delete teamBulkChanges[key]
-  for (const key of Object.keys(teamBulkBoardsChanges)) delete teamBulkBoardsChanges[key]
 }
 
 function cancelTeamBulkEdit() {
   teamBulkEditing.value = false
   for (const key of Object.keys(teamBulkChanges)) delete teamBulkChanges[key]
-  for (const key of Object.keys(teamBulkBoardsChanges)) delete teamBulkBoardsChanges[key]
 }
 
 function teamBulkKey(teamId, fieldId) {
@@ -1147,21 +1138,6 @@ function setTeamBulkValue(teamId, fieldId, value) {
   }
 }
 
-function getTeamBulkBoardsValue(teamId) {
-  if (teamId in teamBulkBoardsChanges) return teamBulkBoardsChanges[teamId]
-  const team = teams.value.find(t => t.id === teamId)
-  return (team?.boards || []).map(b => b.url).join(', ')
-}
-
-function setTeamBulkBoardsValue(teamId, value) {
-  const team = teams.value.find(t => t.id === teamId)
-  const original = (team?.boards || []).map(b => b.url).join(', ')
-  if (value === original) {
-    delete teamBulkBoardsChanges[teamId]
-  } else {
-    teamBulkBoardsChanges[teamId] = value
-  }
-}
 
 async function saveAllTeamChanges() {
   saving.value = true
@@ -1179,24 +1155,14 @@ async function saveAllTeamChanges() {
       changesByTeam[teamId][fieldId] = valueToSave
     }
 
-    await Promise.all([
-      ...Object.entries(changesByTeam).map(([teamId, fields]) =>
+    await Promise.all(
+      Object.entries(changesByTeam).map(([teamId, fields]) =>
         updateTeamFields(teamId, fields)
-      ),
-      ...Object.entries(teamBulkBoardsChanges).map(([teamId, value]) => {
-        const urls = value.split(',').map(s => s.trim()).filter(Boolean)
-        const boards = urls.map(url => ({ url }))
-        return apiRequest(`/modules/team-tracker/structure/teams/${teamId}/boards`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ boards })
-        })
-      })
-    ])
+      )
+    )
 
     teamBulkEditing.value = false
     for (const key of Object.keys(teamBulkChanges)) delete teamBulkChanges[key]
-    for (const key of Object.keys(teamBulkBoardsChanges)) delete teamBulkBoardsChanges[key]
     refresh()
   } finally {
     saving.value = false

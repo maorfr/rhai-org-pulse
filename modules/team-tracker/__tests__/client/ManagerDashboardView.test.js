@@ -368,8 +368,8 @@ describe('ManagerDashboardView', () => {
         { uid: 'alice', name: 'Alice', email: 'alice@example.com', title: 'Engineer', teamIds: ['team_a'], customFields: {} }
       ]
       mockTeams.value = [
-        { id: 'team_a', name: 'Alpha', orgKey: 'org1', directReportUids: ['alice'], totalMemberCount: 3, metadata: { field_t1: '' }, boards: [] },
-        { id: 'team_b', name: 'Beta', orgKey: 'org1', directReportUids: ['alice'], totalMemberCount: 2, metadata: { field_t1: 'value' }, boards: [] }
+        { id: 'team_a', name: 'Alpha', orgKey: 'org1', directReportUids: ['alice'], totalMemberCount: 3, metadata: { field_t1: '' }, boards: [{ url: 'https://board.example.com/a' }] },
+        { id: 'team_b', name: 'Beta', orgKey: 'org1', directReportUids: ['alice'], totalMemberCount: 2, metadata: { field_t1: 'value' }, boards: [{ url: 'https://board.example.com/b' }] }
       ]
       mockFieldDefinitions.value = {
         person: [],
