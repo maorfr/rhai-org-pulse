@@ -13,6 +13,7 @@
         "ga": "2026-07-01"
       },
       "state": "active",
+      "source": "product-pages",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-01T00:00:00Z"
     },
@@ -27,6 +28,7 @@
         "ga": "2026-09-01"
       },
       "state": "active",
+      "source": "product-pages",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-01T00:00:00Z"
     },
@@ -40,6 +42,7 @@
         "ga": "2026-04-15"
       },
       "state": "archived",
+      "source": "manual",
       "createdAt": "2026-03-01T00:00:00Z",
       "updatedAt": "2026-04-20T00:00:00Z"
     }

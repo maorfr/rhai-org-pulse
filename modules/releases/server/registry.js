@@ -13,6 +13,8 @@ const REGISTRY_FILE = 'releases/registry.json';
 const SCHEMA_VERSION = 1;
 
 const VALID_STATES = ['active', 'archived'];
+// Fields controlled by Product Pages — cannot be edited locally on PP-sourced releases
+const PP_MANAGED_FIELDS = ['displayName', 'productPagesShortname', 'productPagesVersion', 'milestones'];
 
 /**
  * Read the registry from storage, returning a normalized object.
@@ -67,6 +69,7 @@ function normalizeRelease(input) {
     productPagesVersion: input.productPagesVersion || null,
     milestones: input.milestones || {},
     state: input.state || 'active',
+    source: input.source || 'manual',
     createdAt: input.createdAt || now,
     updatedAt: now
   };
@@ -230,11 +233,24 @@ function registerRegistryRoutes(router, context) {
       return res.status(404).json({ error: 'Release not found' });
     }
 
-    // Merge body into existing, preserving createdAt and id
+    // Merge body into existing, preserving createdAt, id, and source
     const existing = registry.releases[idx];
+
+    // For PP-sourced releases, reject changes to PP-managed fields
+    if (existing.source === 'product-pages') {
+      for (const field of PP_MANAGED_FIELDS) {
+        if (field in req.body) {
+          return res.status(400).json({
+            error: `Cannot edit "${field}" on a Product Pages release. This field is managed by Product Pages.`
+          });
+        }
+      }
+    }
+
     const merged = {
       ...req.body,
       id: existing.id,
+      source: existing.source,
       createdAt: existing.createdAt
     };
 
@@ -339,9 +355,12 @@ function registerRegistryRoutes(router, context) {
 
       // Map Product Pages releases to registry format
       const registry = readRegistry(readFromStorage);
-      const existingIds = new Set(registry.releases.map(r => r.id));
+      const existingById = new Map(registry.releases.map(r => [r.id, r]));
       let created = 0;
+      let updated = 0;
+      let archived = 0;
       const discovered = [];
+      const discoveredIds = new Set();
 
       for (const ppRelease of ppReleases) {
         const releaseNumber = ppRelease.releaseNumber || '';
@@ -350,6 +369,7 @@ function registerRegistryRoutes(router, context) {
         const id = releaseNumber.toLowerCase().replace(/\s+/g, '-');
         if (!/^[a-z0-9][a-z0-9._-]*$/.test(id)) continue;
 
+        discoveredIds.add(id);
         discovered.push({
           id,
           displayName: releaseNumber,
@@ -358,37 +378,68 @@ function registerRegistryRoutes(router, context) {
           codeFreezeDate: ppRelease.codeFreezeDate
         });
 
-        if (existingIds.has(id)) continue;
+        const existing = existingById.get(id);
 
-        const release = normalizeRelease({
-          id,
-          displayName: releaseNumber,
-          productPagesShortname: releaseNumber.split('-')[0] || null,
-          productPagesVersion: releaseNumber,
-          milestones: {
-            gaDate: ppRelease.dueDate || null,
-            codeFreezeDate: ppRelease.codeFreezeDate || null
-          },
-          state: 'active'
-        });
+        if (existing) {
+          // Skip archived releases — respect the user's archive decision
+          if (existing.state === 'archived') continue;
 
-        registry.releases.push(release);
-        existingIds.add(id);
-        created++;
+          // Update PP-managed fields on existing PP-sourced releases
+          if (existing.source === 'product-pages') {
+            existing.displayName = releaseNumber;
+            existing.productPagesShortname = releaseNumber.split('-')[0] || existing.productPagesShortname;
+            existing.productPagesVersion = releaseNumber;
+            existing.milestones = {
+              ...(existing.milestones || {}),
+              ga: ppRelease.dueDate || existing.milestones?.ga || null,
+              codeFreeze: ppRelease.codeFreezeDate || existing.milestones?.codeFreeze || null
+            };
+            existing.updatedAt = new Date().toISOString();
+            updated++;
+          }
+          // Manual releases with matching ID are left untouched
+        } else {
+          // Create new PP-sourced release
+          const release = normalizeRelease({
+            id,
+            displayName: releaseNumber,
+            productPagesShortname: releaseNumber.split('-')[0] || null,
+            productPagesVersion: releaseNumber,
+            milestones: {
+              ga: ppRelease.dueDate || null,
+              codeFreeze: ppRelease.codeFreezeDate || null
+            },
+            source: 'product-pages',
+            state: 'active'
+          });
+
+          registry.releases.push(release);
+          existingById.set(id, release);
+          created++;
+        }
       }
 
-      if (created > 0) {
+      // Auto-archive PP-sourced releases that are no longer in Product Pages
+      for (const release of registry.releases) {
+        if (release.source === 'product-pages' && release.state === 'active' && !discoveredIds.has(release.id)) {
+          release.state = 'archived';
+          release.updatedAt = new Date().toISOString();
+          archived++;
+        }
+      }
+
+      if (created > 0 || updated > 0 || archived > 0) {
         writeRegistry(writeToStorage, registry);
         logAudit(readFromStorage, writeToStorage, {
           domain: 'registry',
           action: 'registry_discover',
           user: req.userEmail || 'unknown',
-          summary: 'Auto-discovered ' + created + ' new release(s) from Product Pages',
-          details: { discovered: discovered.length, created, shortnames }
+          summary: `Synced with Product Pages: ${created} created, ${updated} updated, ${archived} archived`,
+          details: { discovered: discovered.length, created, updated, archived, shortnames }
         });
       }
 
-      res.json({ status: 'ok', discovered: discovered.length, created, releases: discovered });
+      res.json({ status: 'ok', discovered: discovered.length, created, updated, archived, releases: discovered });
     } catch (err) {
       console.error('[releases/registry] Auto-discover failed:', err.message);
       res.status(500).json({ error: 'Auto-discover failed: ' + err.message });

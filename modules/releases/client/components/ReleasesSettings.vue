@@ -52,18 +52,6 @@ async function triggerRefresh(domain) {
       </div>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Release Registry</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400">
-        Registry management and auto-discover will be available after full module integration.
-      </p>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Planning</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400">
-        Planning settings (RICE config, release outcomes) will be migrated in Phase 2.
-      </p>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
       <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Execution</h3>
       <ExecutionSettings />
     </div>

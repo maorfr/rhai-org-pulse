@@ -263,9 +263,11 @@ import {
   KeyRound,
   ClipboardList,
   BookOpen,
+  Database,
   History,
   Hospital,
-  LayoutDashboard
+  LayoutDashboard,
+  Rocket
 } from 'lucide-vue-next'
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
@@ -306,10 +308,13 @@ const ICON_MAP = {
   'clipboard-list': ClipboardList,
   BookOpen,
   ClipboardList,
+  Database,
   History,
   Hospital,
   'hospital': Hospital,
-  LayoutDashboard
+  LayoutDashboard,
+  Rocket,
+  'rocket': Rocket
 }
 
 const props = defineProps({
@@ -321,6 +326,7 @@ const props = defineProps({
   isAdmin: Boolean,
   isTeamAdmin: { type: Boolean, default: false },
   isManager: { type: Boolean, default: false },
+  roles: { type: Array, default: () => [] },
   modules: { type: Array, default: () => [] },
   builtInManifests: { type: Array, default: () => [] },
   titlePrefix: { type: String, default: '' },
@@ -403,8 +409,10 @@ const navSections = computed(() => {
           if (item.requireCondition === 'in-app-mode' && props.teamDataSource !== 'in-app') return false
           if (!item.requireRole) return true
           if (props.isAdmin) return true
-          if (item.requireRole === 'team-admin') return props.isTeamAdmin
-          if (item.requireRole === 'manager') return props.isManager || props.isTeamAdmin
+          if (props.roles.includes(item.requireRole)) return true
+          // Fallback: team-admin sees manager items too
+          if (item.requireRole === 'manager' && (props.isTeamAdmin || props.isManager)) return true
+          if (item.requireRole === 'team-admin' && props.isTeamAdmin) return true
           return false
         })
         .map(item => ({
