@@ -39,7 +39,22 @@ function upsertTestPlan(data, key, testPlan) {
   const existing = data.testPlans[key];
 
   if (!existing) {
-    data.testPlans[key] = { latest: testPlan, history: [] };
+    const history = [];
+
+    // If test plan has beforeScore/beforeScores, create initial history entry
+    // This represents the state before auto-revision
+    if (testPlan.beforeScore !== null && testPlan.beforeScore !== undefined &&
+        testPlan.beforeScores) {
+      history.push({
+        scores: testPlan.beforeScores,
+        score: testPlan.beforeScore,
+        verdict: testPlan.beforeScore >= 8 ? 'Ready' : (testPlan.beforeScore >= 6 ? 'Revise' : 'Rework'),
+        autoRevised: false,
+        reviewedAt: testPlan.reviewedAt
+      });
+    }
+
+    data.testPlans[key] = { latest: testPlan, history };
     return 'created';
   }
 

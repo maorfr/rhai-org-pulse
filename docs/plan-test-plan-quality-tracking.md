@@ -16,28 +16,31 @@ The "Test Plan Review" tab fills the slot previously held by the disabled "QE / 
 ## Data Flow
 
 ```
-odh-test-gen (test-plan-create skill)
-  │ Produces TestPlanReview.md with 5-criterion scores
-  │ (specificity, grounding, scope_fidelity, actionability, consistency)
-  │ Stamps Jira labels on source issue (Step 3.6 + Step 4.5)
+Jira (RHAISTRAT feature issue)
+  │ Feature gets strat-creator-human-sign-off label
   │
-  ▼
-push script (TODO — not yet built, see "Next Steps" below)
-  │ Will read frontmatter from TestPlanReview.md + TestPlan.md
-  │ POST to /api/modules/ai-impact/test-plans/bulk
+  ▼ Detected by GitLab CI scheduler (TODO)
+test-plan-generator (NEW GitLab repo)
+  │ Runs Claude Code with /test-plan-create skill
+  │ Produces TestPlan.md, TestPlanReview.md, TestPlanGaps.md, test_cases/
+  │ Stamps test-plan-auto-created label on Jira issue
   │
-  ▼
-org-pulse AI Impact module
-  │ Validates, upserts, tracks history (max 20 entries)
-  │ Auto-triggers Jira sync 10s after bulk ingest
-  │ Enriches with jiraTitle, jiraStatus, jiraPriority, labels
-  │ Derives humanReviewStatus from labels
+  ├─▶ org-pulse /test-plans/bulk API
+  │   │ Parse TestPlanReview.md frontmatter
+  │   │ POST quality scores to dashboard
+  │   │ Auto-triggers Jira sync 10s later
+  │   │
+  │   ▼
+  │  Dashboard UI — "Test Plan Review" tab
+  │    Metrics, charts, filterable list, detail panel
+  │    Cross-links to Feature Review and RFE Review
   │
-  ▼
-Dashboard UI — "Test Plan Review" tab
-  │ Metrics row, charts, filterable list, detail panel
-  │ Cross-links to Feature Review and RFE Review
-  │ Pipeline Progress timeline
+  └─▶ opendatahub-test-plans (GitHub)
+      │ Fork repo, create branch, commit test plan files
+      │ Open PR for QE review
+      │
+      ▼
+     Merged by QE after review
 ```
 
 ---
@@ -51,8 +54,8 @@ Dashboard UI — "Test Plan Review" tab
 | **Scale**         | 0-2 each, 10-point total       | 0-2 each, 10-point total   | 0-2 each, 10-point total                                           |
 | **Verdicts**      | PASS / FAIL                    | PASS / FAIL                | Ready / Revise / Rework                                            |
 | **Auto-revision** | Up to 2 cycles                 | N/A                        | Up to 2 cycles                                                     |
-| **Source tool**   | rfe-assessor CI                | strat-creator pipeline     | odh-test-gen `/test-plan-create` skill                             |
-| **Source repo**   | rfe-assess-data (intermediate) | N/A                        | odh-test-gen (local TestPlanReview.md)                             |
+| **Source tool**   | rfe-assessor CI                | strat-creator pipeline     | test-plan-generator CI (auto-triggered)                            |
+| **Source repo**   | rfe-assess-data (GitLab)       | strat-pipeline-data (GitLab) | opendatahub-test-plans (GitHub, via PR)                         |
 
 
 ---
@@ -401,69 +404,100 @@ Manual E2E checklist: `docs/e2e-test-plan-quality.md`
 
 ## Next Steps
 
-### 1. Data Push Pipeline (highest priority)
+### 1. Automated Test Plan Generation & Publishing Pipeline (highest priority)
 
-The dashboard API is ready to receive data. The automated push pipeline will follow the same pattern as the existing RFE assessment pipeline, with rfe-assessor (GitLab CI) as the centralized push hub.
+**Status**: Not yet implemented
+
+**Detailed plan**: See [plan-automated-test-plan-generation.md](plan-automated-test-plan-generation.md) for full architecture and implementation details.
+
+The dashboard API is ready to receive data. A new GitLab CI pipeline will automatically generate test plans when features are approved and publish results to both org-pulse and opendatahub-test-plans.
 
 **Architecture:**
 
 ```
-odh-test-gen (GitHub — skill repo)
-  │ Developer runs /test-plan-create per feature
-  │ Produces TestPlan.md, TestPlanReview.md, TC-*.md
-  │ Stamps Jira labels (Steps 3.6 + 4.5)
+Jira (RHAISTRAT feature issue)
+  │ Feature gets strat-creator-human-sign-off label
   │
-  ▼ PR merges
-odh-test-plans (GitHub — centralized data repo)
-  │ features/{RHAISTRAT-XXXX}/
-  │   ├── TestPlan.md          (feature name, components, source key)
-  │   ├── TestPlanReview.md    (scores, verdict, auto_revised, feedback)
-  │   └── test_cases/TC-*.md   (generated test cases)
+  ▼ Label detected by GitLab CI scheduler
+NEW GitLab repo: test-plan-generator (to be created)
+  │ Monitors Jira for strat-creator-human-sign-off label
+  │ Follows rfe-assessor pattern (https://gitlab.com/redhat/rhel-ai/agentic-ci/rfe-assessor)
   │
-  ▼ Cloned by GitLab CI
-rfe-assessor (GitLab — CI pipeline hub)
-  │ New job: push-test-plans
-  │ scripts/push-test-plans-to-org-pulse.py
-  │   1. Walk features/**/TestPlanReview.md
-  │   2. Parse frontmatter (scores, verdict, auto_revised, reviewed_at)
-  │   3. Enrich from TestPlan.md (feature name, components)
-  │   4. Count TC-*.md in test_cases/ for testCaseCount
-  │   5. POST to /test-plans/bulk in batches of 25
+  │ On label detection:
+  │   1. Run Claude Code with /test-plan-create {RHAISTRAT-XXX}
+  │   2. Optionally run /test-plan-create-cases for test case generation
+  │   3. Parse generated TestPlanReview.md frontmatter
+  │   4. POST to org-pulse /test-plans/bulk (dashboard data)
+  │   5. Fork opendatahub-test-plans (GitHub)
+  │   6. Commit TestPlan.md, TestPlanReview.md, TestPlanGaps.md, test_cases/
+  │   7. Open PR to opendatahub-test-plans from fork
   │
   ▼
 org-pulse /test-plans/bulk → Jira sync auto-triggers 10s later
+  │ Dashboard shows test plan quality scores
+  │
+  ▼
+opendatahub-test-plans (GitHub)
+  │ PR with test plan artifacts for human review
+  │ Merged by QE after review
 ```
 
-This makes rfe-assessor the single CI hub for all three AI Impact data types:
+**GitLab CI job (similar to rfe-assessor assess-rfe):**
 
-| CI Job | Source Repo | Push Script | Target Endpoint |
-|--------|-----------|-------------|-----------------|
-| `assess-rfe` (existing) | rfe-assess-data (GitLab) | `push-to-org-pulse.py` | `/assessments/bulk` |
-| `push-test-plans` (new) | odh-test-plans (GitHub) | `push-test-plans-to-org-pulse.py` | `/test-plans/bulk` |
-| `push-features` (future) | TBD | TBD | `/features/bulk` |
+```yaml
+generate-test-plans:
+  stage: test-plan
+  timeout: 2h
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: manual
+  variables:
+    CLAUDE_PROMPT: "/test-plan-create {discovered-RHAISTRAT-keys}"
+    CLAUDE_PLUGINS: "https://github.com/opendatahub-io/odh-test-gen.git"
+  script:
+    # 1. Query Jira for RHAISTRAT issues with strat-creator-human-sign-off label
+    # 2. Run Claude Code with /test-plan-create for each
+    # 3. Parse TestPlanReview.md frontmatter
+    # 4. POST to org-pulse (like rfe-assessor does)
+    # 5. Fork opendatahub-test-plans, commit files, open PR
+```
 
-**New files needed in rfe-assessor:**
+**New repo needed:**
 
-- `scripts/push-test-plans-to-org-pulse.py` — mirrors `push-to-org-pulse.py` pattern
-- `.gitlab-ci.yml` update — add `push-test-plans` job that clones odh-test-plans and runs the script
+- **test-plan-generator** (GitLab) — new repo following rfe-assessor pattern
+  - `scripts/discover-approved-features.py` — Query Jira for strat-creator-human-sign-off
+  - `scripts/push-to-org-pulse.py` — POST TestPlanReview data to dashboard
+  - `scripts/publish-to-github.sh` — Fork, commit, PR to opendatahub-test-plans
+  - `.gitlab-ci.yml` — Scheduled job + manual trigger
 
-**Secrets needed in rfe-assessor GitLab CI:**
+**Secrets needed in GitLab CI:**
 
-- `ORG_PULSE_URL` / `ORG_PULSE_API_TOKEN` — already configured
-- `GITHUB_TOKEN` or deploy key — to clone odh-test-plans from GitHub
+- `ORG_PULSE_URL` / `ORG_PULSE_API_TOKEN` — org-pulse dashboard API
+- `GITHUB_TOKEN` — fork opendatahub-test-plans, create PRs
+- `JIRA_EMAIL` / `JIRA_TOKEN` — query for approved features
+- `GCP_SA_KEY` — Claude Code (Vertex AI)
 
-**Push script details:**
+**Script responsibilities:**
 
-- Walk `--features-dir` for `TestPlanReview.md` files
-- Read review frontmatter via YAML parser (scores, verdict, auto_revised, reviewed_at)
-- Enrich from sibling `TestPlan.md` frontmatter (feature, components)
-- Count `TC-*.md` files in `test_cases/` for `testCaseCount`
-- Map snake_case → camelCase (validation accepts both, but camelCase is canonical)
-- POST to `/api/modules/ai-impact/test-plans/bulk` in batches of 25
-- Auth via `ORG_PULSE_URL` + `ORG_PULSE_API_TOKEN` env vars
-- `--dry-run` flag for local testing
-- Non-blocking: always exits 0, logs warnings on failure
-- Dependencies: PyYAML only (or stdlib-only if frontmatter is simple enough)
+1. **discover-approved-features.py**:
+   - JQL: `project = RHAISTRAT AND labels = strat-creator-human-sign-off AND labels NOT IN (test-plan-auto-created)`
+   - Returns list of keys to process
+   - Marks processed by adding `test-plan-auto-created` label
+
+2. **push-to-org-pulse.py**:
+   - Parse TestPlanReview.md frontmatter (scores, verdict, reviewed_at)
+   - Enrich from TestPlan.md (feature name, components)
+   - Count TC-*.md files
+   - POST to `/api/modules/ai-impact/test-plans/bulk`
+
+3. **publish-to-github.sh**:
+   - Fork opendatahub-test-plans (if not already forked)
+   - Create branch: `test-plan/{feature-slug}`
+   - Commit TestPlan.md, TestPlanReview.md, TestPlanGaps.md, test_cases/
+   - Push to fork
+   - Open PR to opendatahub-test-plans main with `gh pr create`
+
+**Reference implementation:** https://gitlab.com/redhat/rhel-ai/agentic-ci/rfe-assessor
 
 ### 2. criterionNotes Gap
 

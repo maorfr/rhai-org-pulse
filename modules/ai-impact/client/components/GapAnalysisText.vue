@@ -8,11 +8,28 @@ const props = defineProps({
 const expandedSections = ref({})
 
 /**
+ * Detect section type based on title.
+ * @param {string} title - Section title
+ * @returns {'resolved' | 'new' | 'open'} Section type
+ */
+function detectSectionType(title) {
+  const lower = title.toLowerCase()
+  if (lower.includes('resolved') || lower.includes('closed')) {
+    return 'resolved'
+  }
+  if (lower.includes('new gaps identified') || lower.includes('new gaps')) {
+    return 'new'
+  }
+  return 'open'
+}
+
+/**
  * Parse gap analysis markdown into structured sections.
  * Supports:
  * - Section headers (## Title)
  * - Bullet points with bold titles (**Title** — description)
  * - Inline bold (**text**)
+ * - Section types: resolved (closed gaps), new (newly identified), open (active gaps)
  */
 const sections = computed(() => {
   if (!props.text) return []
@@ -27,8 +44,10 @@ const sections = computed(() => {
     // Section header (## Title)
     if (trimmed.startsWith('## ')) {
       if (currentSection) result.push(currentSection)
+      const title = trimmed.slice(3)
       currentSection = {
-        title: trimmed.slice(3),
+        title,
+        type: detectSectionType(title),
         items: []
       }
       continue
@@ -49,7 +68,7 @@ const sections = computed(() => {
 
   if (currentSection) result.push(currentSection)
 
-  // Initialize all sections as collapsed
+  // Initialize all sections as collapsed by default
   result.forEach((section, idx) => {
     if (expandedSections.value[idx] === undefined) {
       expandedSections.value[idx] = false
@@ -100,6 +119,9 @@ function toggleSection(idx) {
       <button
         @click="toggleSection(sIdx)"
         class="w-full flex items-center justify-between text-left group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+        :class="{
+          'opacity-60': section.type === 'resolved'
+        }"
       >
         <div class="flex items-center gap-2">
           <!-- Chevron icon -->
@@ -113,13 +135,47 @@ function toggleSection(idx) {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
 
+          <!-- Type icon -->
+          <svg
+            v-if="section.type === 'resolved'"
+            class="w-3.5 h-3.5 text-green-600 dark:text-green-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <svg
+            v-else-if="section.type === 'new'"
+            class="w-3.5 h-3.5 text-amber-600 dark:text-amber-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+
           <!-- Section title -->
-          <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <h5
+            class="text-xs font-semibold uppercase tracking-wide"
+            :class="{
+              'text-green-700 dark:text-green-400': section.type === 'resolved',
+              'text-amber-700 dark:text-amber-400': section.type === 'new',
+              'text-gray-700 dark:text-gray-300': section.type === 'open'
+            }"
+          >
             {{ section.title }}
           </h5>
 
           <!-- Count badge -->
-          <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+          <span
+            class="px-1.5 py-0.5 text-xs font-medium rounded"
+            :class="{
+              'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400': section.type === 'resolved',
+              'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': section.type === 'new',
+              'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400': section.type === 'open'
+            }"
+          >
             {{ section.items.length }}
           </span>
         </div>
@@ -133,12 +189,27 @@ function toggleSection(idx) {
         <div
           v-for="(item, iIdx) in section.items"
           :key="iIdx"
-          class="text-sm text-gray-600 dark:text-gray-400 pl-4 flex"
+          class="text-sm pl-4 flex"
+          :class="{
+            'text-gray-500 dark:text-gray-500': section.type === 'resolved',
+            'text-gray-600 dark:text-gray-400': section.type !== 'resolved'
+          }"
         >
-          <span class="mr-2 text-gray-400 flex-shrink-0">&bull;</span>
+          <span class="mr-2 flex-shrink-0"
+            :class="{
+              'text-gray-400': section.type !== 'resolved',
+              'text-gray-500': section.type === 'resolved'
+            }"
+          >&bull;</span>
           <span class="flex-1">
             <template v-for="(seg, j) in item.segments" :key="j">
-              <strong v-if="seg.bold" class="text-gray-700 dark:text-gray-300">{{ seg.text }}</strong>
+              <strong
+                v-if="seg.bold"
+                :class="{
+                  'text-green-700 dark:text-green-500': section.type === 'resolved',
+                  'text-gray-700 dark:text-gray-300': section.type !== 'resolved'
+                }"
+              >{{ seg.text }}</strong>
               <span v-else>{{ seg.text }}</span>
             </template>
           </span>
