@@ -80,7 +80,7 @@ spec:
               memory: "128Mi"
               cpu: "200m"
         - name: nginx
-          image: quay.io/org-pulse/team-tracker-frontend:latest
+          image: quay.io/org-pulse/org-pulse-core-frontend:latest
           ports:
             - containerPort: 8080
               protocol: TCP

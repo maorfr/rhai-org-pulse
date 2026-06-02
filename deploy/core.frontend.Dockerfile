@@ -1,3 +1,9 @@
+# Org Pulse Core — Frontend (complete)
+#
+# Builds and serves the core platform with team-tracker module only.
+# Use this if you don't need to add extra modules. If you do, use
+# core.frontend-builder.Dockerfile + core.frontend-runtime.Dockerfile instead.
+
 # Stage 1: Build the Vue SPA
 FROM registry.access.redhat.com/ubi9/nodejs-20-minimal AS build
 
@@ -12,7 +18,9 @@ COPY index.html vite.config.mjs tailwind.config.mjs postcss.config.mjs ./
 COPY src/ ./src/
 COPY public/ ./public/
 COPY shared/client/ ./shared/client/
-COPY modules/ ./modules/
+
+# Core module only
+COPY modules/team-tracker/ ./modules/team-tracker/
 
 RUN npm run build
 
