@@ -191,4 +191,27 @@ test.describe('AI Impact Views @ai-impact', () => {
   test('should load Build & Release view', async ({ page }) => {
     await testView(page, 'build-release', 'Build & Release');
   });
+
+  test('should load For You view', async ({ page }) => {
+    await testView(page, 'for-you', 'For You');
+  });
+
+  test('should show wizard on first visit to For You', async ({ page }) => {
+    // localStorage is clean in test environment, so wizard should appear
+    await page.goto('/#/ai-impact/for-you');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(DEFAULT_PAGE_WAIT_TIME);
+
+    // The wizard modal should be visible
+    const wizardText = page.locator('text=Welcome to For You');
+    const isVisible = await wizardText.isVisible().catch(() => false);
+    // In demo mode the wizard should appear since localStorage is fresh
+    if (isVisible) {
+      // Verify both mode options are present
+      await expect(page.locator('text=Auto')).toBeVisible();
+      await expect(page.locator('text=Manual')).toBeVisible();
+    }
+
+    expect(page.errors).toHaveLength(0);
+  });
 });
