@@ -1569,6 +1569,7 @@ refreshRegistry.register('platform:backup', {
     if (backupRunning) {
       return { status: 'skipped', reason: 'backup already in progress' };
     }
+    backupRunning = true;
     try {
       const result = await backup.createBackup();
       const retention = await backup.applyRetention();
@@ -1576,6 +1577,8 @@ refreshRegistry.register('platform:backup', {
     } catch (err) {
       console.error('[platform:backup] Backup failed:', err.message);
       throw err;
+    } finally {
+      backupRunning = false;
     }
   }
 });
