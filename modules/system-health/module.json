@@ -4,13 +4,14 @@
   "description": "Operational health signals for repositories and related systems",
   "icon": "hospital",
   "order": 18,
+  "disabled": true,
   "defaultEnabled": true,
   "requires": [],
   "client": {
     "entry": "./client/index.js",
     "navItems": [
-      { "id": "quality-analysis", "label": "Quality analysis", "icon": "clipboard-list", "default": true },
-      { "id": "component-maturity", "label": "Component maturity", "icon": "layers" }
+      { "id": "quality-analysis", "label": "Quality analysis", "icon": "clipboard-list", "default": true, "disabled": true },
+      { "id": "component-maturity", "label": "Component maturity", "icon": "layers", "disabled": true }
     ]
   },
   "server": {

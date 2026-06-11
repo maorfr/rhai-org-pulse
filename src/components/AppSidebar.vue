@@ -39,11 +39,14 @@
           <!-- Collapsible section header (built-in modules) -->
           <template v-if="section.collapsible && !collapsed">
             <button
-              @click="toggleSection(section.id)"
+              :disabled="section.disabled"
+              @click="!section.disabled && toggleSection(section.id)"
               class="group relative w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-200 gap-3 px-3"
-              :class="activeModule === section.id
-                ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'"
+              :class="section.disabled
+                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                : activeModule === section.id
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'"
               :aria-expanded="section.expanded"
               :aria-label="section.headerLabel"
             >
@@ -93,14 +96,17 @@
             <template v-for="item in section.items" :key="item.id">
               <button
                 v-if="!section.collapsible || collapsed"
-                @click="$emit('navigate', item.id)"
+                :disabled="section.disabled || item.disabled"
+                @click="!(section.disabled || item.disabled) && $emit('navigate', item.id)"
                 :aria-current="isNavItemActive(item, section) ? 'page' : undefined"
                 :aria-label="item.label"
                 class="group relative w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                 :class="[
-                  isNavItemActive(item, section)
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100',
+                  section.disabled || item.disabled
+                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                    : isNavItemActive(item, section)
+                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100',
                   collapsed ? 'justify-center px-0' : 'gap-3 px-3'
                 ]"
               >
@@ -398,7 +404,7 @@ const navSections = computed(() => {
       id: 'home',
       label: '',
       items: [
-        { id: 'home', label: 'Home', icon: Home }
+        { id: 'home', label: 'Home', icon: Home, disabled: true }
       ]
     }
   ]
@@ -413,6 +419,7 @@ const navSections = computed(() => {
       expanded: expandedSections.value[manifest.slug] || false,
       headerLabel: manifest.name,
       headerIcon: resolveIcon(manifest.icon),
+      disabled: manifest.disabled || false,
       items: navItems
         .filter(item => {
           if (item.requireCondition === 'in-app-mode' && props.teamDataSource !== 'in-app') return false
@@ -428,7 +435,7 @@ const navSections = computed(() => {
           id: `${manifest.slug}::${item.id}`,
           label: item.label,
           icon: resolveIcon(item.icon),
-          disabled: item.disabled || false,
+          disabled: manifest.disabled || item.disabled || false,
           separatorBefore: item.separatorBefore || false
         }))
     })

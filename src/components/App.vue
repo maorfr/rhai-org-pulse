@@ -718,8 +718,9 @@ export default {
         return
       }
 
-      // Default: landing page
-      this.setShellView('home')
+      // Default: redirect to AI Impact autofix
+      window.location.hash = '#/ai-impact/autofix'
+      return
     },
 
     getDefaultViewId(manifest) {

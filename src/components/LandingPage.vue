@@ -26,16 +26,32 @@
         <button
           v-for="mod in builtInManifests"
           :key="mod.slug"
-          @click="$emit('navigate', mod.slug)"
-          class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          :disabled="mod.disabled"
+          @click="!mod.disabled && $emit('navigate', mod.slug)"
+          class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 transition-all text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          :class="mod.disabled
+            ? 'cursor-not-allowed opacity-50'
+            : 'cursor-pointer hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md'"
         >
           <div class="flex items-start gap-3">
-            <div class="p-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg text-primary-600 dark:text-primary-400">
+            <div class="p-2 rounded-lg"
+              :class="mod.disabled
+                ? 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                : 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'"
+            >
               <component :is="getIcon(mod.icon)" :size="20" />
             </div>
             <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ mod.name }}</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ mod.description }}</p>
+              <h3 class="text-base font-semibold"
+                :class="mod.disabled
+                  ? 'text-gray-400 dark:text-gray-500'
+                  : 'text-gray-900 dark:text-gray-100'"
+              >{{ mod.name }}</h3>
+              <p class="text-sm mt-1"
+                :class="mod.disabled
+                  ? 'text-gray-400 dark:text-gray-600'
+                  : 'text-gray-500 dark:text-gray-400'"
+              >{{ mod.description }}</p>
             </div>
           </div>
         </button>
@@ -116,7 +132,9 @@ import {
   Network,
   ChartCandlestick,
   Sparkles,
-  Hospital
+  Hospital,
+  Rocket,
+  Factory
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -146,7 +164,9 @@ const iconMap = {
   'network': Network,
   'chart-candlestick': ChartCandlestick,
   'sparkles': Sparkles,
-  'hospital': Hospital
+  'hospital': Hospital,
+  'rocket': Rocket,
+  'Factory': Factory
 }
 
 function getIcon(iconName) {

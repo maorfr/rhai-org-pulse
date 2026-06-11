@@ -298,7 +298,8 @@ app.get('/api/built-in-modules/manifests', function(req, res) {
         order: mod.order,
         client: mod.client,
         requires: mod.requires || [],
-        defaultEnabled: mod.defaultEnabled
+        defaultEnabled: mod.defaultEnabled,
+        disabled: mod.disabled
       };
     });
     res.json({ modules });

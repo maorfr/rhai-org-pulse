@@ -15,6 +15,9 @@ COPY modules/upstream-pulse/ ./modules/upstream-pulse/
 COPY modules/product-builds/ ./modules/product-builds/
 COPY modules/system-health/ ./modules/system-health/
 
+# Override src for custom changes
+COPY src/ ./src/
+
 RUN npm run build
 
 # Stage 2: Serve with hardened nginx

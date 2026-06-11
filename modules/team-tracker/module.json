@@ -4,15 +4,16 @@
   "description": "People, teams, delivery metrics, and org insights",
   "icon": "users-round",
   "order": 0,
+  "disabled": true,
   "client": {
     "entry": "./client/index.js",
     "navItems": [
-      { "id": "home", "label": "Team Directory", "icon": "Users", "default": true },
-      { "id": "people", "label": "People", "icon": "User" },
-      { "id": "reports", "label": "Reports", "icon": "BarChart3" },
-      { "id": "org-dashboard", "label": "Org Dashboard", "icon": "Building2" },
-      { "id": "manager-dashboard", "label": "My Teams", "icon": "LayoutDashboard", "requireRole": "manager", "requireCondition": "in-app-mode" },
-      { "id": "manage", "label": "Manage", "icon": "Settings", "requireRole": "team-admin", "requireCondition": "in-app-mode" }
+      { "id": "home", "label": "Team Directory", "icon": "Users", "default": true, "disabled": true },
+      { "id": "people", "label": "People", "icon": "User", "disabled": true },
+      { "id": "reports", "label": "Reports", "icon": "BarChart3", "disabled": true },
+      { "id": "org-dashboard", "label": "Org Dashboard", "icon": "Building2", "disabled": true },
+      { "id": "manager-dashboard", "label": "My Teams", "icon": "LayoutDashboard", "requireRole": "manager", "requireCondition": "in-app-mode", "disabled": true },
+      { "id": "manage", "label": "Manage", "icon": "Settings", "requireRole": "team-admin", "requireCondition": "in-app-mode", "disabled": true }
     ],
     "settingsComponent": "./client/components/TeamTrackerSettings.vue"
   },

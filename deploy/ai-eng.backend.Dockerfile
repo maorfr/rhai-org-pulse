@@ -7,6 +7,12 @@ FROM quay.io/org-pulse/org-pulse-core-backend:${CORE_TAG}
 
 USER 0
 
+# Override server to support disabled field in manifests API
+COPY server/ ./server/
+
+# Override team-tracker from core with custom disabled version
+COPY modules/team-tracker/ ./modules/team-tracker/
+
 # Add AI Eng modules
 COPY modules/ai-impact/ ./modules/ai-impact/
 COPY modules/releases/ ./modules/releases/
