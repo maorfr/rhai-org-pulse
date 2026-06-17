@@ -1,0 +1,27 @@
+# Platform / Shell (core team)
+/src/                           @accorvin
+/server/dev-server.js           @accorvin
+/server/module-loader.js        @accorvin
+/server/modules/                @accorvin
+/shared/                        @accorvin
+/deploy/                        @accorvin
+# Automated image tag updates — no code owner required (allows CI auto-merge)
+/deploy/openshift/overlays/prod/kustomization.yaml
+/deploy/openshift/overlays/preprod/kustomization.yaml
+/.github/                       @accorvin
+/package.json                   @accorvin
+/vite.config.mjs                @accorvin
+/CODEOWNERS                     @accorvin
+/scripts/                       @accorvin
+
+# Per-module ownership (add new modules here)
+/modules/team-tracker/          @accorvin
+/modules/ai-impact/             @accorvin
+/modules/org-roster/            @accorvin
+/modules/releases/              @saprabhu05
+# /modules/search/              @search-team-lead
+# /modules/dashboards/          @dashboards-team-lead
+
+# Module manifests affect shell behavior -> core review ALWAYS required
+# This rule MUST come AFTER per-module rules (last match wins in GitHub CODEOWNERS)
+/modules/*/module.json          @accorvin

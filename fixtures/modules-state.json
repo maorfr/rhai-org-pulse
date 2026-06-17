@@ -1,0 +1,7 @@
+{
+  "upstream-pulse": true,
+  "ai-impact": true,
+  "releases": true,
+  "team-tracker": true,
+  "system-health": true
+}

@@ -1,0 +1,38 @@
+{
+  "name": "AI Impact",
+  "slug": "ai-impact",
+  "description": "Track AI adoption across the RHAI delivery pipeline",
+  "icon": "sparkles",
+  "order": 5,
+  "client": {
+    "entry": "./client/index.js",
+    "navItems": [
+      { "id": "state-of-the-union", "label": "State of the Union", "icon": "UserCircle" },
+      { "id": "ai-factory-guide", "label": "AI Factory Guide", "icon": "BookOpen", "default": true, "separatorBefore": true },
+      { "id": "rfe-review", "label": "RFE Review", "icon": "ClipboardList", "separatorBefore": true },
+      { "id": "feature-review", "label": "Feature Review", "icon": "Target" },
+      { "id": "test-plan-review", "label": "Test Plan Review", "icon": "ClipboardCheck" },
+      { "id": "implementation", "label": "Implementation", "icon": "GitBranch", "disabled": true },
+      { "id": "security", "label": "Security Review", "icon": "Shield", "disabled": true },
+      { "id": "documentation", "label": "Documentation", "icon": "FileText" },
+      { "id": "build-release", "label": "Build & Release", "icon": "Layers" },
+      { "id": "autofix", "label": "Jira AutoFix", "icon": "Wand2", "separatorBefore": true }
+    ],
+    "settingsComponent": "./client/components/AIImpactSettings.vue"
+  },
+  "server": {
+    "entry": "./server/index.js"
+  },
+  "secrets": {
+    "platform": ["jira", "github", "gitlab"],
+    "module": [
+      {
+        "key": "GITLAB_CEE_REDHAT_DOCS_TOKEN",
+        "description": "GitLab token for internal docs MR quality KPI",
+        "required": false
+      }
+    ]
+  },
+  "defaultEnabled": true,
+  "requires": ["releases"]
+}
