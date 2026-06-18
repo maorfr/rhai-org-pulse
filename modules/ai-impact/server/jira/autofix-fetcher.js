@@ -76,7 +76,7 @@ function computeAutofixMetrics(issues, timeWindow) {
   ).length;
 
   const triageVerdicts = {
-    ready: windowIssues.filter(i => i.pipelineState.startsWith('autofix-')).length,
+    ready: windowIssues.filter(i => i.pipelineState === 'autofix-ready').length,
     missingInfo: windowIssues.filter(i => i.pipelineState === 'triage-missing-info').length,
     notFixable: windowIssues.filter(i => i.pipelineState === 'triage-not-fixable').length,
     stale: windowIssues.filter(i => i.pipelineState === 'triage-stale').length,
